@@ -1,0 +1,8 @@
+def I = \x:B. x
+def K = \x:B.\y:B.x
+def S = \x:B->B->B.\y:B->B.\z:B.(x z) (y z)
+def succ = \n:(B->B)->B->B.
+            \f:B->B.
+             \x:B. 
+               f (n f x)
+def zero = \f:B->B.\x:B.x
