@@ -1,0 +1,151 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[pdftex]{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{ltxtable}
+\usepackage{proof}
+\usepackage{amsmath}
+\usepackage{ amssymb }
+\usepackage[left=2cm, right=2cm, top=2cm]{geometry} 
+\begin{document}
+\begin{titlepage}
+
+\begin{minipage}{2.6cm}
+\includegraphics[width=\textwidth]{fceia.pdf}
+\end{minipage}
+\hfill
+%
+\begin{minipage}{6cm}
+\begin{center}
+\normalsize{Universidad Nacional de Rosario\\
+Facultad de Ciencias Exactas,\\
+Ingeniería y Agrimensura\\}
+\end{center}
+\end{minipage}
+\hspace{0.5cm}
+\hfill
+\begin{minipage}{2.6cm}
+\includegraphics[width=\textwidth]{unr.pdf}
+\end{minipage}
+
+\vspace{0.5cm}
+
+\begin{center}
+\normalsize{\sc Análisis de Lenguajes de Programación}\\
+\vspace{0.5cm}
+\large{Trabajo Práctico III}\\
+
+\Large{\bf $\lambda$-cálculo tipado}\\
+\vspace{5cm}
+
+\normalsize
+Román Castellarin\\
+Juan Ignacio Suarez\\
+
+\vspace*{0.5cm}
+\small{ \today }
+
+
+\end{center}
+\end{titlepage}
+\newpage
+
+\subsection{Ejercicio 1}
+
+Notemos con $B^2 \equiv (B \rightarrow B)$ y con $B^3 \equiv (B \rightarrow B \rightarrow B)$.
+
+A continuación definimos los siguientes contextos:\\
+
+
+$\Gamma_1 = \lbrace x:B^3, y:B^2, z:B \rbrace$
+
+$\Gamma_2 = \lbrace x:B^3, y:B^2 \rbrace$
+
+$\Gamma_3 = \lbrace x:B^3 \rbrace$\\
+
+%%
+
+Luego resulta,\\
+
+\infer[\textsc{T-Abs}]{\vdash (\lambda x : B^3.\ \lambda y : B^2.\ \lambda z : B.\ (x\ z)\ (y\ z) ): B^3 \rightarrow B^2 \rightarrow B^2}{
+	\infer[\textsc{T-Abs}]{\Gamma_3 \vdash (\lambda y : B^2.\ \lambda z : B.\ (x\ z)\ (y\ z) ): B^2 \rightarrow B^2}{
+		\infer[\textsc{T-Abs}]{\Gamma_2 \vdash (\lambda z : B.\ (x\ z)\ (y\ z)) : B^2 }{
+			\infer[\textsc{T-App}]{\Gamma_1 \vdash (x\ z)\ (y\ z) : B }{
+				\infer[\textsc{T-App}]{\Gamma_1 \vdash x\ z : B^2 }{
+					\infer[\textsc{T-Var}]{\Gamma_1 \vdash x : B^3 }{}
+					&
+					\infer[\textsc{T-Var}]{\Gamma_1 \vdash z : B }{}
+				}
+				&
+				\infer[\textsc{T-App}]{\Gamma_1 \vdash y\ z : B }{
+					\infer[\textsc{T-Var}]{\Gamma_1 \vdash y : B^2 }{}
+					&
+					\infer[\textsc{T-Var}]{\Gamma_1 \vdash z : B }{}
+				}
+			}
+		}
+	}
+}
+
+
+\subsection{Ejercicio 2}
+
+De acuerdo a las reglas de tipado, algunas expresiones carecen de un tipo. \\
+La función \textit{infer} devuelve \texttt{Either String Type} ya que si el término no está bien tipado se puede retornar un \texttt{String} con un mensaje de error.\\
+Esto se combina a su vez con el operador \textit{bind} que toma un \texttt{Either String Type}, y una función \texttt{f} de \texttt{Type} en \texttt{Either String Type} y propaga el error si su primer argumento se trataba de un \texttt{String}, o en caso contrario aplica \texttt{f} al tipo contenido.\\
+La utilidad de \textit{bind} se puede apreciar mejor cuando se encadenan varias funciones, dejando un código prolijo y sin repeticiones.
+
+\subsection{Ejercicio 3 - 4}
+
+\textit{(en el codigo fuente)}
+
+\subsection{Ejercicio 5}
+
+Conservando la notación anterior, tenemos\\
+
+\infer[\textsc{T-Ascribe}]{ \vdash (\texttt{let }z=( \lambda x:B.\ x) \texttt{ as } B^2\texttt{ in } z)\texttt{ as } B^2 : B^2 }{
+	\infer[\textsc{T-Let}]{ \vdash (\texttt{let }z=( \lambda x:B.\ x) \texttt{ as } B^2\texttt{ in } z) : B^2 }{
+		\infer[\textsc{T-Ascribe}]{ \vdash( \lambda x:B.\ x) \texttt{ as } B^2 : B^2 }{
+		    \infer[\textsc{T-Abs}]{ \vdash( \lambda x:B.\ x): B^2 }{
+			    \infer[\textsc{T-Var}]{ x:B \vdash x : B }{}
+			}
+		}
+		&
+		\infer[\textsc{T-Var}]{ z:B^2 \vdash z : B^2 }{}
+	}
+}
+
+\subsection{Ejercicio 6 - 8}
+
+\textit{(en el codigo fuente)}
+
+\subsection{Ejercicio 9}
+
+Continuamos con la siguiente demostración:\\
+
+\infer[\textsc{T-Fst}]{ \vdash \texttt{fst }(\texttt{unit as Unit}, \lambda x:(B,B).\ \texttt{snd } x) : \texttt{Unit}}{
+	\infer[\textsc{T-Pair}]{ \vdash (\texttt{unit as Unit}, \lambda x:(B,B).\ \texttt{snd } x) : (\texttt{Unit}, (B,B) \rightarrow B) }{
+		\infer[\textsc{T-Ascribe}]{ \vdash \texttt{unit as Unit} : \texttt{Unit} }{
+		    \infer[\textsc{T-Unit}]{ \vdash \texttt{unit} : \texttt{Unit} }{}
+		}
+		&
+		\infer[\textsc{T-Abs}]{ \vdash (\lambda x:(B,B).\ \texttt{snd } x) : (B,B) \rightarrow B }{
+			\infer[\textsc{T-Snd}]{ x : (B,B) \vdash \texttt{snd } x : B }{
+			    \infer[\textsc{T-Var}]{ x : (B,B) \vdash x : (B,B) }{}
+			}
+		}
+	}
+}
+
+\subsection{Ejercicio 10}
+
+\textit{(en el codigo fuente)}
+
+\subsection{Ejercicio 11}
+
+\textit{(en el archivo correspondiente)}
+
+\end{document}
