@@ -48,6 +48,14 @@ pp ii vs (First t) = text "fst " <>
                      pp ii vs t 
 pp ii vs (Second t) = text "snd " <> 
                      pp ii vs t 
+pp ii vs Zero = text "0 "
+pp ii vs (Succ t) = text "succ "<>
+                    pp ii vs t
+pp ii vs (Rec t1 t2 t3) =
+  sep [ text "R " , parensIf (not $ isAtom t1) (pp ii vs t1) ,
+        parensIf (not $ isAtom t2) (pp ii vs t2) ,
+        parensIf (not $ isAtom t3) (pp ii vs t3)
+      ]
                      
 isLam :: Term -> Bool                    
 isLam (Lam _ _) = True
@@ -55,12 +63,22 @@ isLam  _      = False
 
 isApp :: Term -> Bool        
 isApp (_ :@: _) = True
-isApp _         = False                                                               
+isApp _         = False 
+
+isAtom :: Term -> Bool
+isAtom t = case t of
+             Free _   -> True
+             Bound _  -> True
+             Unit     -> True
+             Zero     -> True
+             Pair _ _ -> True
+             _        -> False
 
 -- pretty-printer de tipos
 printType :: Type -> Doc
 printType Base         = text "B"
 printType TypeUnit     = text "Unit"
+printType TypeNat      = text "Nat"
 printType (TypePair t1 t2) = text "(" <>
                         printType t1 <>
                         text ", " <>
@@ -69,6 +87,7 @@ printType (TypePair t1 t2) = text "(" <>
 printType (Fun t1 t2)  = sep [ parensIf (isFun t1) (printType t1), 
                                text "->", 
                                printType t2]
+
 isFun :: Type -> Bool
 isFun (Fun _ _)        = True
 isFun _                = False
@@ -84,6 +103,9 @@ fv (First t)         = fv t
 fv (Second t)        = fv t
 fv Unit              = []
 fv (Pair t u)        = fv t ++ fv u
+fv Zero              = []
+fv (Succ t)          = fv t
+fv (Rec t u v)       = fv t ++ fv u ++ fv v
   
 ---
 printTerm :: Term -> Doc 

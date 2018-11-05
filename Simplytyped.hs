@@ -18,15 +18,18 @@ conversion :: LamTerm -> Term
 conversion = conversion' []
 
 conversion' :: [String] -> LamTerm -> Term
-conversion' b (LVar n)     = maybe (Free (Global n)) Bound (n `elemIndex` b)
-conversion' b (App t u)    = conversion' b t :@: conversion' b u
-conversion' b (Abs n t u)  = Lam t (conversion' (n:b) u)
-conversion' b (LLet x v e)  = Let (conversion' b v) (conversion' (x:b) e)
-conversion' b (LAs t t')  = As (conversion' b t) t'
-conversion' b LUnit  = Unit
-conversion' b (LPair t t')  = Pair (conversion' b t) (conversion' b t')
-conversion' b (LFirst t)  = First (conversion' b t)
-conversion' b (LSecond t)  = Second (conversion' b t)
+conversion' b (LVar n)         = maybe (Free (Global n)) Bound (n `elemIndex` b)
+conversion' b (App t u)        = conversion' b t :@: conversion' b u
+conversion' b (Abs n t u)      = Lam t (conversion' (n:b) u)
+conversion' b (LLet x v e)     = Let (conversion' b v) (conversion' (x:b) e)
+conversion' b (LAs t t')       = As (conversion' b t) t'
+conversion' b LUnit            = Unit
+conversion' b (LPair t t')     = Pair (conversion' b t) (conversion' b t')
+conversion' b (LFirst t)       = First (conversion' b t)
+conversion' b (LSecond t)      = Second (conversion' b t)
+conversion' b LZero            = Zero
+conversion' b (LSucc t)       = Succ (conversion' b t)
+conversion' b (LRec t t' t'') = Rec (conversion' b t) (conversion' b t') (conversion' b t'')
 
 
 -----------------------
@@ -45,6 +48,10 @@ sub i t Unit                  = Unit
 sub i t (Pair t' t'')         = Pair (sub i t t') (sub i t t'')
 sub i t (First t')            = First (sub i t t')
 sub i t (Second t')           = Second (sub i t t')
+sub i t Zero                  = Zero
+sub i t (Succ t')             = Succ (sub i t t')
+sub i t (Rec t' t'' t''')        = Rec (sub i t t') (sub i t t'') (sub i t t''')
+
 
 -- evaluador de términos
 eval :: NameEnv Value Type -> Term -> Value
@@ -52,12 +59,7 @@ eval _ (Bound _)             = error "variable ligada inesperada en eval"
 eval e (Free n)              = fst $ fromJust $ lookup n e
 eval _ (Lam t u)             = VLam t u
 eval e (Lam _ u :@: Lam s v) = eval e (sub 0 (Lam s v) u)
-eval e (Lam t u :@: v)       = case eval e v of
-                 VUnit      -> if t == TypeUnit
-                               then eval e (sub 0 Unit u)
-                               else error "Error de tipo en run-time, verificar type checker"
-                 VLam t' u' -> eval e (Lam t u :@: Lam t' u') 
-                 VPair t' u' -> eval e (sub 0 (Pair (quote t') (quote u')) u)
+eval e (Lam t u :@: v)       = eval e (sub 0 (quote (eval e v)) u)
 eval e (u :@: v)             = case eval e u of
                  VLam t u'  -> eval e (Lam t u' :@: v)
                  _          -> error "Error de tipo en run-time, verificar type checker"
@@ -71,6 +73,16 @@ eval e (First t)             = case eval e t of
 eval e (Second t)            = case eval e t of
                 VPair _ t'  -> t' 
                 _           -> error "Error de tipo en run-time, verificar type checker"
+eval e Zero                  = VNat NatZero
+eval e (Succ t)              = case eval e t of
+                VNat x -> VNat (NatSucc x)
+                _ -> error "Error de tipo en run-time, verificar type checker"
+eval e (Rec t t' t'')        = case (eval e t'') of
+                VNat NatZero     -> eval e t
+                VNat (NatSucc x) -> let tq = quote (VNat x)
+                                    in eval e (t'' :@: (Rec t' t'' tq) :@: tq)
+                _ -> error "Error de tipo en run-time, verificar type checker"
+
 
 -----------------------
 --- quoting
@@ -80,6 +92,8 @@ quote :: Value -> Term
 quote (VLam t f) = Lam t f
 quote VUnit = Unit
 quote (VPair t t') = Pair (quote t) (quote t')
+quote (VNat NatZero) = Zero
+quote (VNat (NatSucc x)) = Succ (quote (VNat x))
 
 ----------------------
 --- type checker
@@ -149,5 +163,24 @@ infer' c e (Second t)  = infer' c e t >>= \t1 ->
                          t' -> err $ "se esperaba una tupla, pero " 
                                     ++ render (printType t')
                                     ++ " fue inferido."
+infer' c e Zero        = ret TypeNat
+infer' c e (Succ t)    = infer' c e t >>= \t' ->
+                        case t' of
+                         TypeNat -> ret t'
+                         _ -> err $ "se esperaba un natural, pero "
+                                    ++ render (printType t')
+                                    ++ " fue inferido."
+infer' c e (Rec t t' t'') = infer' c e t >>= \t1 ->
+                            infer' c e t' >>= \t2 ->
+                            infer' c e t'' >>= \t3 ->
+                        case t3 of
+                         TypeNat -> if t2 == Fun t1 (Fun TypeNat t1)
+                                    then ret t1
+                                    else matchError (Fun t1 (Fun TypeNat t1)) t2
+                         _ -> err $ "se esperaba un natural, pero "
+                                    ++ render (printType t3)
+                                    ++ " fue inferido."
+
+
      
 ----------------------------------

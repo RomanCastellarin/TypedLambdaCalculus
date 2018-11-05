@@ -22,6 +22,7 @@ module Common where
             | Fun Type Type
             | TypeUnit
             | TypePair Type Type
+            | TypeNat
             deriving (Show, Eq)
   
   -- Términos con nombres
@@ -34,6 +35,9 @@ module Common where
                 |  LPair LamTerm LamTerm
                 |  LFirst LamTerm
                 |  LSecond LamTerm
+                |  LZero
+                |  LSucc LamTerm
+                |  LRec LamTerm LamTerm LamTerm
                 deriving (Show, Eq)
 
 
@@ -48,12 +52,19 @@ module Common where
              | Pair Term Term
              | First Term
              | Second Term
+             | Zero
+             | Succ Term
+             | Rec Term Term Term
           deriving (Show, Eq)
 
   -- Valores
   data Value = VLam Type Term 
              | VUnit
              | VPair Value Value 
+             | VNat Nat
+
+  data Nat = NatZero 
+           | NatSucc Nat
 
   -- Contextos del tipado
   type Context = [Type]

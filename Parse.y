@@ -33,6 +33,10 @@ import Data.Char
     FST     { TFirst }
     SND     { TSecond }
     ','     { TComma }
+    SUC     { TSuc }
+    REC     { TRec }
+    ZERO    { TZero }
+    TNAT    { TNat }
     
 
 %right VAR
@@ -41,7 +45,7 @@ import Data.Char
 %right '\\' '.' LET IN
 %left AS 
 %right REC
-%right SUC 
+%right SUC
 %right SND FST
 
 
@@ -58,6 +62,8 @@ Exp     :: { LamTerm }
         | FST Exp                      { LFirst $2 }
         | SND Exp                      { LSecond $2 }
         | LET VAR '=' Exp IN Exp       { LLet $2 $4 $6 }
+        | SUC Exp                      { LSucc $2 }
+        | REC Atom Atom Exp            { LRec $2 $3 $4 }
         | NAbs                         { $1 }
         
 NAbs    :: { LamTerm }
@@ -68,6 +74,7 @@ Atom    :: { LamTerm }
         : VAR                          { LVar $1 }
         | '(' Exp ',' Exp ')'          { LPair $2 $4 }
         | UNIT                         { LUnit }
+        | ZERO                         { LZero }
         | '(' Exp ')'                  { $2 }
 
 Type    : TYPE                         { Base }
@@ -75,6 +82,7 @@ Type    : TYPE                         { Base }
         | '(' Type ')'                 { $2 }
         | TUNIT                        { TypeUnit }
         | '(' Type ',' Type ')'        { TypePair $2 $4 }
+        | TNAT                         { TypeNat }
 
 Defs    : Defexp Defs                  { $1 : $2 }
         |                              { [] }
@@ -119,6 +127,10 @@ data Token = TVar String
                | TTUnit
                | TFirst
                | TSecond
+               | TSuc
+               | TRec
+               | TZero
+               | TNat
                | TDot
                | TOpen
                | TClose 
@@ -148,17 +160,21 @@ lexer cont s = case s of
                     (':':cs) -> cont TColon cs
                     (',':cs) -> cont TComma cs
                     ('=':cs) -> cont TEquals cs
+                    ('0':cs) -> cont TZero cs
                     unknown -> \line -> Failed $ "Línea "++(show line)++": No se puede reconocer "++(show $ take 10 unknown)++ "..."
                     where lexVar cs = case span isAlpha cs of
-                                           ("B", rest)     -> cont TType   rest
-                                           ("def", rest)   -> cont TDef    rest
-                                           ("let", rest)   -> cont TLet    rest
-                                           ("in", rest)    -> cont TIn     rest
-                                           ("as", rest)    -> cont TAs     rest
-                                           ("unit", rest)  -> cont TUnit   rest
-                                           ("Unit", rest)  -> cont TTUnit  rest
-                                           ("fst", rest)   -> cont TFirst  rest
-                                           ("snd", rest)   -> cont TSecond rest
+                                           ("B", rest)     -> cont TType      rest
+                                           ("def", rest)   -> cont TDef       rest
+                                           ("let", rest)   -> cont TLet       rest
+                                           ("in", rest)    -> cont TIn        rest
+                                           ("as", rest)    -> cont TAs        rest
+                                           ("unit", rest)  -> cont TUnit      rest
+                                           ("Unit", rest)  -> cont TTUnit     rest
+                                           ("fst", rest)   -> cont TFirst     rest
+                                           ("snd", rest)   -> cont TSecond    rest
+                                           ("Nat", rest)   -> cont TNat       rest
+                                           ("R", rest)     -> cont TRec       rest
+                                           ("succ", rest)  -> cont TSuc       rest
                                            (var,rest)      -> cont (TVar var) rest
                           consumirBK anidado cl cont s = case s of
                                                               ('-':('-':cs)) -> consumirBK anidado cl cont $ dropWhile ((/=) '\n') cs
