@@ -1,7 +1,2 @@
---def AckAux = \a:Nat -> Nat. \n:Nat. R (a (succ 0)) (\x:Nat. \y:Nat. a x) n
---def Ack = \m:Nat. R (\n:Nat. succ n) (\f:Nat->Nat. \y:Nat. AckAux f) m
-
-def Iter = \f:Nat -> Nat. \n:Nat. (R (f (succ 0)) (\g:Nat. \x:Nat. f g) n)
-def ack = \m:Nat. (R (\n:Nat. succ n) (\g:Nat -> Nat. \x:Nat. \n:Nat. Iter g n) m)
-
-def add = \x:Nat. \y:Nat. (R x (\x:Nat . \y:Nat . succ x) y)
+def applyAck = \f:Nat -> Nat. \n:Nat. (R (f (succ 0)) (\g:Nat. \x:Nat. f g) n)
+def Ack = \m:Nat. (R (\n:Nat. succ n) (\f:Nat -> Nat. \x:Nat. applyAck f) m)
