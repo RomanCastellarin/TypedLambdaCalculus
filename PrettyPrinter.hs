@@ -51,11 +51,11 @@ pp ii vs (Second t) = text "snd " <>
 pp ii vs Zero = text "0 "
 pp ii vs (Succ t) = text "succ "<>
                     pp ii vs t
-pp ii vs (Rec t1 t2 t3) =
-  sep [ text "R " , parensIf (not $ isAtom t1) (pp ii vs t1) ,
-        parensIf (not $ isAtom t2) (pp ii vs t2) ,
-        parensIf (not $ isAtom t3) (pp ii vs t3)
-      ]
+pp ii vs (Rec t1 t2 t3) = sep [ text "R " ,
+                                parensIf (not $ isAtom t1) (pp ii vs t1) ,
+                                parensIf (not $ isAtom t2) (pp ii vs t2) ,
+                                parensIf (not $ isAtom t3) (pp ii vs t3)
+                                ]
                      
 isLam :: Term -> Bool                    
 isLam (Lam _ _) = True

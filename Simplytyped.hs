@@ -28,8 +28,8 @@ conversion' b (LPair t t')     = Pair (conversion' b t) (conversion' b t')
 conversion' b (LFirst t)       = First (conversion' b t)
 conversion' b (LSecond t)      = Second (conversion' b t)
 conversion' b LZero            = Zero
-conversion' b (LSucc t)       = Succ (conversion' b t)
-conversion' b (LRec t t' t'') = Rec (conversion' b t) (conversion' b t') (conversion' b t'')
+conversion' b (LSucc t)        = Succ (conversion' b t)
+conversion' b (LRec t t' t'')  = Rec (conversion' b t) (conversion' b t') (conversion' b t'')
 
 
 -----------------------
@@ -50,7 +50,7 @@ sub i t (First t')            = First (sub i t t')
 sub i t (Second t')           = Second (sub i t t')
 sub i t Zero                  = Zero
 sub i t (Succ t')             = Succ (sub i t t')
-sub i t (Rec t' t'' t''')        = Rec (sub i t t') (sub i t t'') (sub i t t''')
+sub i t (Rec t' t'' t''')     = Rec (sub i t t') (sub i t t'') (sub i t t''')
 
 
 -- evaluador de términos
@@ -59,29 +59,29 @@ eval _ (Bound _)             = error "variable ligada inesperada en eval"
 eval e (Free n)              = fst $ fromJust $ lookup n e
 eval _ (Lam t u)             = VLam t u
 eval e (Lam _ u :@: Lam s v) = eval e (sub 0 (Lam s v) u)
-eval e (Lam t u :@: v)       = eval e (sub 0 (quote (eval e v)) u)
+eval e (Lam t u :@: v)       = let t' = eval e v in eval e (sub 0 (quote t') u)
 eval e (u :@: v)             = case eval e u of
                  VLam t u'  -> eval e (Lam t u' :@: v)
-                 _          -> error "Error de tipo en run-time, verificar type checker"
+                 _          -> error "Error de tipo en run-time, verificar type checker - 1"
 eval e (Let t u)             = let t' = eval e t in eval e (sub 0 (quote t') u)
 eval e (As t t')             = eval e t
 eval e Unit                  = VUnit
 eval e (Pair t t')           = VPair (eval e t) (eval e t')
 eval e (First t)             = case eval e t of
                 VPair t' _  -> t' 
-                _           -> error "Error de tipo en run-time, verificar type checker"
+                _           -> error "Error de tipo en run-time, verificar type checker - 2"
 eval e (Second t)            = case eval e t of
                 VPair _ t'  -> t' 
-                _           -> error "Error de tipo en run-time, verificar type checker"
+                _           -> error "Error de tipo en run-time, verificar type checker - 3"
 eval e Zero                  = VNat NatZero
 eval e (Succ t)              = case eval e t of
                 VNat x -> VNat (NatSucc x)
-                _ -> error "Error de tipo en run-time, verificar type checker"
-eval e (Rec t t' t'')        = case (eval e t'') of
+                _ -> error "Error de tipo en run-time, verificar type checker - 4"
+eval e (Rec t u v)           = case eval e v of
                 VNat NatZero     -> eval e t
                 VNat (NatSucc x) -> let tq = quote (VNat x)
-                                    in eval e (t'' :@: (Rec t' t'' tq) :@: tq)
-                _ -> error "Error de tipo en run-time, verificar type checker"
+                                    in eval e (u :@: (Rec t u tq) :@: tq)
+                _ -> error "Error de tipo en run-time, verificar type checker - 5"
 
 
 -----------------------
@@ -89,11 +89,12 @@ eval e (Rec t t' t'')        = case (eval e t'') of
 -----------------------
 
 quote :: Value -> Term
-quote (VLam t f) = Lam t f
-quote VUnit = Unit
-quote (VPair t t') = Pair (quote t) (quote t')
-quote (VNat NatZero) = Zero
+quote (VLam t f)         = Lam t f
+quote VUnit              = Unit
+quote (VPair t t')       = Pair (quote t) (quote t')
+quote (VNat NatZero)     = Zero
 quote (VNat (NatSucc x)) = Succ (quote (VNat x))
+
 
 ----------------------
 --- type checker
